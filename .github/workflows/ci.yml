@@ -49,6 +49,9 @@ jobs:
       - name: Copy tern.conf
         run: cp .github/workflows/ci/tern.conf postgresql/tern.conf
 
+      - name: Install templ
+        run: curl -L https://github.com/a-h/templ/releases/download/v0.2.707/templ_Linux_x86_64.tar.gz > templ.tar.gz && tar -zxf templ.tar.gz -C /usr/local/bin/
+
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
       # with:
