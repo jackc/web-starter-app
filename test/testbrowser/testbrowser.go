@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/semaphore"
@@ -28,20 +27,8 @@ type ManagerConfig struct {
 }
 
 func NewManager(config ManagerConfig) (*Manager, error) {
-	url, err := launcher.New().NoSandbox(true).Launch()
-	if err != nil {
-		// Needed for Github CI
-		//
-		// See:
-		// - https://github.com/go-rod/rod/issues/116
-		// - https://chromium.googlesource.com/chromium/src/+/main/docs/linux/suid_sandbox_development.md?pli=1#
-		if err != nil {
-			return nil, fmt.Errorf("browser launcher failed: %w", err)
-		}
-	}
-
 	browser := rod.New()
-	err = browser.ControlURL(url).Connect()
+	err := browser.Connect()
 	if err != nil {
 		return nil, fmt.Errorf("connect to browser failed: %w", err)
 	}
