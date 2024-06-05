@@ -28,14 +28,13 @@ type ManagerConfig struct {
 }
 
 func NewManager(config ManagerConfig) (*Manager, error) {
-	url, err := launcher.New().Launch()
+	url, err := launcher.New().NoSandbox(true).Launch()
 	if err != nil {
 		// Needed for Github CI
 		//
 		// See:
 		// - https://github.com/go-rod/rod/issues/116
 		// - https://chromium.googlesource.com/chromium/src/+/main/docs/linux/suid_sandbox_development.md?pli=1#
-		url, err = launcher.New().NoSandbox(true).Launch()
 		if err != nil {
 			return nil, fmt.Errorf("browser launcher failed: %w", err)
 		}
