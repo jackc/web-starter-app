@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
-      PGDATABASE: web_starter_app_test
       TERN_CONFIG: postgresql/tern.conf
       TERN_MIGRATIONS: postgresql/migrations
       LISTEN_ADDRESS: "127.0.0.1:8080"
