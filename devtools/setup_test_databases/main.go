@@ -51,7 +51,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// Migrate the test database.
-		ternCmd := exec.Command("tern", "migrate")
+		ternCmd := exec.Command("tern", "migrate", "--database", testConnConfig.Database)
 		ternCmd.Stderr = os.Stderr
 		err = ternCmd.Run()
 		if err != nil {
