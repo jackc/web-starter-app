@@ -30,7 +30,7 @@ jobs:
       TEST_PGDATABASE: web_starter_app_test
       TEST_DATABASE_COUNT: 1
       APP_PGUSER: web_starter_app
-      DATABASE_URL: "user=web_starter_app password=password sslmode=disable"
+      DATABASE_URL: "host=127.0.0.1 user=web_starter_app password=password sslmode=disable"
 
     steps:
       - name: Start and set up PostgreSQL
