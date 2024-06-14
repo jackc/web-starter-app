@@ -65,11 +65,11 @@ jobs:
       - name: Install templ
         run: curl -L https://github.com/a-h/templ/releases/download/v0.2.707/templ_Linux_x86_64.tar.gz > templ.tar.gz && tar -zxf templ.tar.gz -C /usr/local/bin/
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          # limits ssh access and adds the ssh public key for the user which triggered the workflow
-          limit-access-to-actor: true
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
+      #   with:
+      #     # limits ssh access and adds the ssh public key for the user which triggered the workflow
+      #     limit-access-to-actor: true
 
       - name: Run tests
         run: rake test
