@@ -151,140 +151,117 @@ func NewHandler(
 		return nil
 	}))
 
-	router.Method("GET", "/", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
-		now, err := db.GetCurrentTime(ctx, env.dbpool)
-		if err != nil {
-			return err
-		}
-
-		loginSession := getLoginSession(ctx)
-		if loginSession.User == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return nil
-		}
-
-		name := loginSession.User.Username
-
-		var walkRecords []*view.HomeWalkRecord
-		if loginSession.User != nil {
-			walkRecords, err = pgxutil.Select(ctx, env.dbpool, "select duration, distance_in_miles, finish_time from walks where user_id=$1 order by finish_time desc", []any{loginSession.User.ID}, pgx.RowToAddrOfStructByPos[view.HomeWalkRecord])
+	router.Group(func(router chi.Router) {
+		router.Use(requireCurrentUserHandler("/login"))
+		router.Method("GET", "/", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+			now, err := db.GetCurrentTime(ctx, env.dbpool)
 			if err != nil {
 				return err
 			}
-		}
 
-		return view.ApplicationLayout(view.Home(name, now, walkRecords)).Render(r.Context(), w)
-	}))
-
-	newWalkForm := &formdata.Form{
-		Fields: []*formdata.Field{
-			{
-				Label:    "Duration",
-				Name:     "duration",
-				Type:     "duration",
-				Required: true,
-			},
-			{
-				Label:    "Distance in miles",
-				Name:     "distance_in_miles",
-				Type:     "number",
-				Required: true,
-			},
-		},
-	}
-
-	router.Method("GET", "/walks/new", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
-		loginSession := getLoginSession(ctx)
-		if loginSession.User == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return nil
-		}
-
-		formData := newWalkForm.New()
-
-		return view.ApplicationLayout(view.WalksNew(formData)).Render(r.Context(), w)
-	}))
-
-	router.Method("POST", "/walks", func() http.Handler {
-		return hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 			loginSession := getLoginSession(ctx)
-			if loginSession.User == nil {
-				http.Redirect(w, r, "/login", http.StatusSeeOther)
+			name := loginSession.User.Username
+
+			var walkRecords []*view.HomeWalkRecord
+			if loginSession.User != nil {
+				walkRecords, err = pgxutil.Select(ctx, env.dbpool, "select duration, distance_in_miles, finish_time from walks where user_id=$1 order by finish_time desc", []any{loginSession.User.ID}, pgx.RowToAddrOfStructByPos[view.HomeWalkRecord])
+				if err != nil {
+					return err
+				}
+			}
+
+			return view.ApplicationLayout(view.Home(name, now, walkRecords)).Render(r.Context(), w)
+		}))
+
+		newWalkForm := &formdata.Form{
+			Fields: []*formdata.Field{
+				{
+					Label:    "Duration",
+					Name:     "duration",
+					Type:     "duration",
+					Required: true,
+				},
+				{
+					Label:    "Distance in miles",
+					Name:     "distance_in_miles",
+					Type:     "number",
+					Required: true,
+				},
+			},
+		}
+
+		router.Method("GET", "/walks/new", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+			formData := newWalkForm.New()
+			return view.ApplicationLayout(view.WalksNew(formData)).Render(r.Context(), w)
+		}))
+
+		router.Method("POST", "/walks", func() http.Handler {
+			return hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+				loginSession := getLoginSession(ctx)
+
+				formData := newWalkForm.Parse(params)
+
+				_, err := env.dbpool.Exec(
+					ctx,
+					"insert into walks (id, user_id, duration, distance_in_miles) values ($1, $2, $3, $4)",
+					uuid.Must(uuid.NewV7()),
+					loginSession.User.ID,
+					formData.FieldValues["duration"].Value,
+					formData.FieldValues["distance_in_miles"].Value,
+				)
+				if err != nil {
+					return err
+				}
+
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return nil
+			})
+		}())
+
+		resetPasswordForm := &formdata.Form{
+			Fields: []*formdata.Field{
+				{
+					Label:    "Current Password",
+					Name:     "current_password",
+					Type:     "password",
+					Required: true,
+				},
+				{
+					Label:    "New Password",
+					Name:     "new_password",
+					Type:     "password",
+					Required: true,
+				},
+			},
+		}
+
+		router.Method("GET", "/change_password", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+			formData := resetPasswordForm.New()
+
+			return view.ApplicationLayout(view.ChangePassword(formData)).Render(r.Context(), w)
+		}))
+
+		router.Method("POST", "/change_password", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+			loginSession := getLoginSession(ctx)
+
+			formData := resetPasswordForm.Parse(params)
+
+			err := db.ValidateUserPassword(ctx, env.dbpool, loginSession.User.ID, formData.FieldValues["current_password"].Value.(string))
+			if err != nil {
+				// TODO - rerender form
+				http.Error(w, "invalid password", http.StatusUnauthorized)
 				return nil
 			}
 
-			formData := newWalkForm.Parse(params)
-
-			_, err := env.dbpool.Exec(
-				ctx,
-				"insert into walks (id, user_id, duration, distance_in_miles) values ($1, $2, $3, $4)",
-				uuid.Must(uuid.NewV7()),
-				loginSession.User.ID,
-				formData.FieldValues["duration"].Value,
-				formData.FieldValues["distance_in_miles"].Value,
-			)
+			err = db.SetUserPassword(ctx, env.dbpool, loginSession.User.ID, formData.FieldValues["new_password"].Value.(string))
 			if err != nil {
 				return err
 			}
 
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return nil
-		})
-	}())
-
-	resetPasswordForm := &formdata.Form{
-		Fields: []*formdata.Field{
-			{
-				Label:    "Current Password",
-				Name:     "current_password",
-				Type:     "password",
-				Required: true,
-			},
-			{
-				Label:    "New Password",
-				Name:     "new_password",
-				Type:     "password",
-				Required: true,
-			},
-		},
-	}
-
-	router.Method("GET", "/change_password", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
-		loginSession := getLoginSession(ctx)
-		if loginSession.User == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return nil
-		}
-
-		formData := resetPasswordForm.New()
-
-		return view.ApplicationLayout(view.ChangePassword(formData)).Render(r.Context(), w)
-	}))
-
-	router.Method("POST", "/change_password", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
-		loginSession := getLoginSession(ctx)
-		if loginSession.User == nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return nil
-		}
-
-		formData := resetPasswordForm.Parse(params)
-
-		err := db.ValidateUserPassword(ctx, env.dbpool, loginSession.User.ID, formData.FieldValues["current_password"].Value.(string))
-		if err != nil {
-			// TODO - rerender form
-			http.Error(w, "invalid password", http.StatusUnauthorized)
-			return nil
-		}
-
-		err = db.SetUserPassword(ctx, env.dbpool, loginSession.User.ID, formData.FieldValues["new_password"].Value.(string))
-		if err != nil {
-			return err
-		}
-
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return nil
-	}))
+		}))
+	})
 
 	router.Route("/system", func(router chi.Router) {
 		router.Use(requireSystemUserHandler("/login"))
