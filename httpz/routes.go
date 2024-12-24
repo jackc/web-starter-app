@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/web-starter-app/db"
 	"github.com/jackc/web-starter-app/lib/bee"
 	"github.com/jackc/web-starter-app/lib/formdata"
+	"github.com/jackc/web-starter-app/lib/pgxrecord"
 	"github.com/jackc/web-starter-app/view"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -201,14 +202,28 @@ func NewHandler(
 
 				formData := newWalkForm.Parse(params)
 
-				_, err := env.dbpool.Exec(
-					ctx,
-					"insert into walks (id, user_id, duration, distance_in_miles) values ($1, $2, $3, $4)",
-					uuid.Must(uuid.NewV7()),
-					loginSession.User.ID,
-					formData.FieldValues["duration"].Value,
-					formData.FieldValues["distance_in_miles"].Value,
-				)
+				values := make(map[string]any)
+				for name, fieldData := range formData.FieldValues {
+					values[name] = fieldData.Value
+				}
+				values["id"] = uuid.Must(uuid.NewV7())
+				values["user_id"] = loginSession.User.ID
+
+				walksTable := &pgxrecord.Table{
+					Name: pgx.Identifier{"walks"},
+				}
+				err := walksTable.LoadAllColumns(ctx, dbpool)
+				if err != nil {
+					return err
+				}
+
+				walk := walksTable.NewRecord()
+				err = walk.SetAttributesStrict(values)
+				if err != nil {
+					return err
+				}
+
+				err = walk.Save(ctx, env.dbpool)
 				if err != nil {
 					return err
 				}
