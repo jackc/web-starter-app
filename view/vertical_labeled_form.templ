@@ -1,48 +1,48 @@
 package view
 
 import (
-  "fmt"
-  "github.com/jackc/web-starter-app/lib/formdata"
+	"fmt"
+	"github.com/jackc/web-starter-app/lib/formdata"
 )
 
 func formattedValue(fieldData *formdata.FieldData) string {
-  if fieldData.SubmittedValue != "" {
-    return fieldData.SubmittedValue
-  }
+	if fieldData.SubmittedValue != "" {
+		return fieldData.SubmittedValue
+	}
 
-  if fieldData.Value == nil {
-    return ""
-  }
+	if fieldData.Value == nil {
+		return ""
+	}
 
-  return fmt.Sprint(fieldData.Value)
+	return fmt.Sprint(fieldData.Value)
 }
 
 func inputType(field *formdata.Field) string {
-  switch field.Type {
-    case "password":
-      return "password"
-    default:
-      return "text"
-  }
+	switch field.Type {
+	case "password":
+		return "password"
+	default:
+		return "text"
+	}
 }
 
 templ VerticalLabeledForm(formData *formdata.FormData) {
-  for _, field := range formData.Form.Fields {
-    <div class="mt-4">
-      <label
-        for={field.Name}
-        class="block"
-      >
-        {field.Label}
-      </label>
-      <input
-        id={field.Name}
-        class="border"
-        type={inputType(field)}
-        name={field.Name}
-        value={formattedValue(formData.FieldValues[field.Name])}
-        required?={field.Required}
-      />
-    </div>
-  }
+	for _, field := range formData.Form.Fields {
+		<div class="mt-4">
+			<label
+				for={ field.Name }
+				class="block"
+			>
+				{ field.Label }
+			</label>
+			<input
+				id={ field.Name }
+				class="border"
+				type={ inputType(field) }
+				name={ field.Name }
+				value={ formattedValue(formData.FieldValues[field.Name]) }
+				required?={ field.Required }
+			/>
+		</div>
+	}
 }

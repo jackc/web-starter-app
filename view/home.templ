@@ -1,13 +1,13 @@
 package view
 
 import (
-	"github.com/shopspring/decimal"
 	"github.com/gofrs/uuid/v5"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
 type HomeWalkRecord struct {
-  ID uuid.UUID
+	ID              uuid.UUID
 	Duration        time.Duration
 	DistanceInMiles decimal.Decimal
 	FinishTime      time.Time
@@ -38,7 +38,7 @@ templ Home(name string, now time.Time, walkRecords []*HomeWalkRecord) {
 			}
 		</tbody>
 	</table>
-  <a href="/system/users" class="link">Users</a>
+	<a href="/system/users" class="link">Users</a>
 	<form action="/logout" method="post">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
 		<button type="submit" class="link">Logout</button>
