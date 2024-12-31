@@ -1,0 +1,14 @@
+package view
+
+import (
+	"github.com/jackc/web-starter-app/lib/formdata"
+	"github.com/gofrs/uuid/v5"
+)
+
+templ WalksEdit(walkID uuid.UUID, formData *formdata.FormData) {
+  <form method="post" action={ templ.SafeURL("/walks"+walkID.String()) }>
+    <input type="hidden" name="gorilla.csrf.Token" value={csrfToken(ctx)} />
+    @VerticalLabeledForm(formData)
+    @button("Save", templ.Attributes{"type": "submit"})
+  </form>
+}

@@ -165,7 +165,7 @@ func NewHandler(
 
 			var walkRecords []*view.HomeWalkRecord
 			if loginSession.User != nil {
-				walkRecords, err = pgxutil.Select(ctx, env.dbpool, "select duration, distance_in_miles, finish_time from walks where user_id=$1 order by finish_time desc", []any{loginSession.User.ID}, pgx.RowToAddrOfStructByPos[view.HomeWalkRecord])
+				walkRecords, err = pgxutil.Select(ctx, env.dbpool, "select id, duration, distance_in_miles, finish_time from walks where user_id=$1 order by finish_time desc", []any{loginSession.User.ID}, pgx.RowToAddrOfStructByPos[view.HomeWalkRecord])
 				if err != nil {
 					return err
 				}
@@ -232,6 +232,40 @@ func NewHandler(
 				return nil
 			})
 		}())
+
+		router.Method("GET", "/walks/{id}", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+			loginSession := getLoginSession(ctx)
+
+			walkID, err := uuid.FromString(params["id"].(string))
+			if err != nil {
+				return err
+			}
+			walkRecord, err := pgxutil.SelectRow(ctx, env.dbpool, "select id, duration, distance_in_miles, finish_time from walks where id = $1 and user_id = $2", []any{walkID, loginSession.User.ID}, pgx.RowToAddrOfStructByPos[view.WalkRecord])
+			if err != nil {
+				return err
+			}
+
+			return view.ApplicationLayout(view.WalksShow(walkRecord)).Render(r.Context(), w)
+		}))
+
+		router.Method("GET", "/walks/{id}/edit", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
+			loginSession := getLoginSession(ctx)
+
+			walkID, err := uuid.FromString(params["id"].(string))
+			if err != nil {
+				return err
+			}
+
+			walkAttrs, err := pgxutil.SelectRow(ctx, env.dbpool, "select id, duration, distance_in_miles from walks where id = $1 and user_id = $2", []any{walkID, loginSession.User.ID}, pgx.RowToMap)
+			if err != nil {
+				return err
+			}
+
+			formData := newWalkForm.Load(walkAttrs)
+			fmt.Println("formData", formData)
+
+			return view.ApplicationLayout(view.WalksEdit(walkAttrs["id"].(uuid.UUID), formData)).Render(r.Context(), w)
+		}))
 
 		resetPasswordForm := &formdata.Form{
 			Fields: []*formdata.Field{

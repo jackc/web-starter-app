@@ -2,10 +2,12 @@ package view
 
 import (
 	"github.com/shopspring/decimal"
+	"github.com/gofrs/uuid/v5"
 	"time"
 )
 
 type HomeWalkRecord struct {
+  ID uuid.UUID
 	Duration        time.Duration
 	DistanceInMiles decimal.Decimal
 	FinishTime      time.Time
@@ -22,6 +24,7 @@ templ Home(name string, now time.Time, walkRecords []*HomeWalkRecord) {
 				<th>Duration</th>
 				<th>Distance</th>
 				<th>Finish Time</th>
+				<th></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -30,6 +33,7 @@ templ Home(name string, now time.Time, walkRecords []*HomeWalkRecord) {
 					<td>{ record.Duration.String() }</td>
 					<td>{ record.DistanceInMiles.String() }</td>
 					<td>{ record.FinishTime.Format("2006-01-02 15:04:05") }</td>
+					<td><a href={ templ.SafeURL("/walks/" + record.ID.String()) } class="link">Show</a></td>
 				</tr>
 			}
 		</tbody>

@@ -1,0 +1,24 @@
+package view
+
+import (
+	"time"
+
+	"github.com/gofrs/uuid/v5"
+	"github.com/shopspring/decimal"
+)
+
+type WalkRecord struct {
+  ID uuid.UUID
+	Duration        time.Duration
+	DistanceInMiles decimal.Decimal
+	FinishTime      time.Time
+}
+
+templ WalksShow(walk *WalkRecord) {
+  <div>Walk</div>
+  {walk.ID.String()}
+  { walk.Duration.String() }
+  { walk.DistanceInMiles.String() }
+  { walk.FinishTime.Format("2006-01-02 15:04:05") }
+  <a href={ templ.SafeURL("/walks/" + walk.ID.String() + "/edit") } class="link">Edit</a>
+}
