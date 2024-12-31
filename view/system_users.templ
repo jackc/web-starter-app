@@ -1,6 +1,11 @@
 package view
 
-import "github.com/gofrs/uuid/v5"
+import (
+  "strconv"
+
+  "github.com/gofrs/uuid/v5"
+	"github.com/jackc/web-starter-app/lib/formdata"
+)
 
 type SystemUsersPageUser struct {
   ID uuid.UUID
@@ -24,4 +29,36 @@ templ SystemUsersPage(users []SystemUsersPageUser) {
       <a href={ templ.SafeURL("/system/users/" + user.ID.String()) } class="link">Show</a>
     </div>
   }
+}
+
+templ SystemUsersShowPage(user *SystemUsersPageUser) {
+  <dl>
+    <dt>Username</dt>
+    <dd>{user.Username}</dd>
+    <dt>System</dt>
+    <dd>{strconv.FormatBool(user.System)}</dd>
+  </dl>
+
+  <a href={templ.SafeURL("/system/users/" + user.ID.String() + "/edit")} class="link">Edit</a>
+	<form action={templ.SafeURL("/system/users/" + user.ID.String() + "/delete")} method="post">
+		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
+		<button type="submit" class="link">Delete</button>
+	</form>
+}
+
+templ SystemUsersNewPage(formData *formdata.FormData) {
+  <form method="post" action="/system/users">
+    <input type="hidden" name="gorilla.csrf.Token" value={csrfToken(ctx)} />
+    @VerticalLabeledForm(formData)
+    @button("Save", templ.Attributes{"type": "submit"})
+  </form>
+}
+
+templ SystemUsersEditPage(id uuid.UUID, formData *formdata.FormData) {
+  <form method="post" action={templ.SafeURL("/system/users/" + id.String() + "/update")} >
+    <input type="hidden" name="gorilla.csrf.Token" value={csrfToken(ctx)} />
+    <input type="hidden" name="_method" value="PATCH" />
+    @VerticalLabeledForm(formData)
+    @button("Save", templ.Attributes{"type": "submit"})
+  </form>
 }
