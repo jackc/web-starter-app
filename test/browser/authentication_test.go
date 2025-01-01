@@ -56,5 +56,5 @@ func TestPasswordLoginFailure(t *testing.T) {
 	page.FillIn("input[name=password]", "wrongpassword")
 	page.ClickOn("Login")
 
-	page.HasContent("body", "invalid")
+	page.HasContent("body", "Invalid username or password")
 }

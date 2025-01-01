@@ -1,6 +1,15 @@
 package view
 
-templ LoginPage() {
+import "github.com/jackc/errortree"
+
+templ LoginPage(loginErrors *errortree.Node) {
+	if loginErrors != nil {
+		<ul>
+			for _, err := range loginErrors.Get() {
+				<li class="text-red-500">{ err.Error() }</li>
+			}
+		</ul>
+	}
 	<form method="post" action="/login/submit">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
 		<input type="text" name="username" placeholder="Username" required/>

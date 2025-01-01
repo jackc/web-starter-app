@@ -11,6 +11,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/securecookie"
+	"github.com/jackc/errortree"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype/zeronull"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -95,26 +96,25 @@ func NewHandler(
 	}
 
 	router.Method("GET", "/login", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		return view.LoginPage().Render(ctx, w)
+		return view.ApplicationLayout(view.LoginPage(nil)).Render(ctx, w)
 	}))
 
 	router.Method("POST", "/login/submit", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 		user, err := db.GetUserByUsername(ctx, env.dbpool, r.FormValue("username"))
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				// TODO - rerender form
-				http.Error(w, "user name not found", http.StatusNotFound)
-				return nil
+				loginErrors := &errortree.Node{}
+				loginErrors.Add(nil, errors.New("Invalid username or password"))
+				return view.ApplicationLayout(view.LoginPage(loginErrors)).Render(ctx, w)
 			}
 			return err
 		}
 
 		err = db.ValidateUserPassword(ctx, env.dbpool, user.ID, r.FormValue("password"))
 		if err != nil {
-			// TODO - rerender form
-			http.Error(w, "invalid password", http.StatusUnauthorized)
-			return nil
+			loginErrors := &errortree.Node{}
+			loginErrors.Add(nil, errors.New("Invalid username or password"))
+			return view.ApplicationLayout(view.LoginPage(loginErrors)).Render(ctx, w)
 		}
 
 		now := time.Now()
