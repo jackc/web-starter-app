@@ -96,7 +96,7 @@ func NewHandler(
 
 	router.Method("GET", "/login", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		return view.LoginPage(csrf.Token(r)).Render(ctx, w)
+		return view.LoginPage().Render(ctx, w)
 	}))
 
 	router.Method("POST", "/login/submit", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
