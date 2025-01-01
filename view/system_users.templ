@@ -47,42 +47,46 @@ type SystemUsersFormFields struct {
 	System   bool
 }
 
+templ systemUsersFormFields(formData *SystemUsersFormFields) {
+	<div class="mt-4">
+		<label
+			for="username"
+			class="block"
+		>
+			Username
+		</label>
+		<input
+			id="username"
+			class="border"
+			type="text"
+			name="username"
+			value={ formData.Username }
+			required
+		/>
+	</div>
+	<div class="mt-4">
+		<input type="hidden" name="system" value="0"/>
+		<input
+			id="system"
+			class="border"
+			type="checkbox"
+			name="system"
+			checked?={ formData.System }
+			value="1"
+		/>
+		<label
+			for="system"
+			class="block"
+		>
+			System
+		</label>
+	</div>
+}
+
 templ SystemUsersNewPage(formData *SystemUsersFormFields) {
 	<form method="post" action="/system/users">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		<div class="mt-4">
-			<label
-				for="username"
-				class="block"
-			>
-				Username
-			</label>
-			<input
-				id="username"
-				class="border"
-				type="text"
-				name="username"
-				value={ formData.Username }
-				required
-			/>
-		</div>
-		<div class="mt-4">
-			<input type="hidden" name="system" value="0"/>
-			<input
-				id="system"
-				class="border"
-				type="checkbox"
-				name="system"
-				checked?={ formData.System }
-				value="1"
-			/>
-			<label
-				for="system"
-				class="block"
-			>
-				System
-			</label>
-		</div>
+		@systemUsersFormFields(formData)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
@@ -90,40 +94,7 @@ templ SystemUsersNewPage(formData *SystemUsersFormFields) {
 templ SystemUsersEditPage(id uuid.UUID, formData *SystemUsersFormFields) {
 	<form method="post" action={ templ.SafeURL("/system/users/" + id.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		<input type="hidden" name="_method" value="PATCH"/>
-		<div class="mt-4">
-			<label
-				for="username"
-				class="block"
-			>
-				Username
-			</label>
-			<input
-				id="username"
-				class="border"
-				type="text"
-				name="username"
-				value={ formData.Username }
-				required
-			/>
-		</div>
-		<div class="mt-4">
-			<input type="hidden" name="system" value="0"/>
-			<input
-				id="system"
-				class="border"
-				type="checkbox"
-				name="system"
-				checked?={ formData.System }
-				value="1"
-			/>
-			<label
-				for="system"
-				class="block"
-			>
-				System
-			</label>
-		</div>
+		@systemUsersFormFields(formData)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }

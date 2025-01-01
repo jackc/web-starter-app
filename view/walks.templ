@@ -35,41 +35,45 @@ type WalkFormFields struct {
 	DistanceInMiles string
 }
 
+templ walkFormFields(formData *WalkFormFields) {
+	<div class="mt-4">
+		<label
+			for="walkDuration"
+			class="block"
+		>
+			Duration
+		</label>
+		<input
+			id="walkDuration"
+			class="border"
+			type="text"
+			name="duration"
+			value={ formData.Duration }
+			required
+		/>
+	</div>
+	<div class="mt-4">
+		<label
+			for="distanceInMiles"
+			class="block"
+		>
+			Distance in miles
+		</label>
+		<input
+			id="distanceInMiles"
+			class="border"
+			type="text"
+			name="distanceInMiles"
+			value={ formData.DistanceInMiles }
+			required
+		/>
+	</div>
+}
+
 templ WalksNew(formData *WalkFormFields) {
 	<form method="post" action="/walks">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		<div class="mt-4">
-			<label
-				for="walkDuration"
-				class="block"
-			>
-				Duration
-			</label>
-			<input
-				id="walkDuration"
-				class="border"
-				type="text"
-				name="duration"
-				value={ formData.Duration }
-				required
-			/>
-		</div>
-		<div class="mt-4">
-			<label
-				for="distanceInMiles"
-				class="block"
-			>
-				Distance in miles
-			</label>
-			<input
-				id="distanceInMiles"
-				class="border"
-				type="text"
-				name="distanceInMiles"
-				value={ formData.DistanceInMiles }
-				required
-			/>
-		</div>
+		@walkFormFields(formData)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
@@ -77,38 +81,7 @@ templ WalksNew(formData *WalkFormFields) {
 templ WalksEdit(walkID uuid.UUID, formData *WalkFormFields) {
 	<form method="post" action={ templ.SafeURL("/walks/" + walkID.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		<div class="mt-4">
-			<label
-				for="walkDuration"
-				class="block"
-			>
-				Duration
-			</label>
-			<input
-				id="walkDuration"
-				class="border"
-				type="text"
-				name="duration"
-				value={ formData.Duration }
-				required
-			/>
-		</div>
-		<div class="mt-4">
-			<label
-				for="distanceInMiles"
-				class="block"
-			>
-				Distance in miles
-			</label>
-			<input
-				id="distanceInMiles"
-				class="border"
-				type="text"
-				name="distanceInMiles"
-				value={ formData.DistanceInMiles }
-				required
-			/>
-		</div>
+		@walkFormFields(formData)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
