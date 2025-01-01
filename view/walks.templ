@@ -2,7 +2,6 @@ package view
 
 import (
 	"github.com/gofrs/uuid/v5"
-	"github.com/jackc/web-starter-app/lib/formdata"
 	"github.com/shopspring/decimal"
 	"time"
 )
@@ -21,24 +20,95 @@ templ WalksShow(walk *WalkRecord) {
 	{ walk.DistanceInMiles.String() }
 	{ walk.FinishTime.Format("2006-01-02 15:04:05") }
 	<a href={ templ.SafeURL("/walks/" + walk.ID.String() + "/edit") } class="link">Edit</a>
+	<form action={ templ.SafeURL("/walks/" + walk.ID.String() + "/delete") } method="post">
+		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
+		@button("Delete", templ.Attributes{"type": "submit"})
+	</form>
 }
 
 templ button(text string, attrs templ.Attributes) {
 	<button { attrs... }>{ text }</button>
 }
 
-templ WalksNew(formData *formdata.FormData) {
+type WalkFormFields struct {
+	Duration        string
+	DistanceInMiles string
+}
+
+templ WalksNew(formData *WalkFormFields) {
 	<form method="post" action="/walks">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@VerticalLabeledForm(formData)
+		<div class="mt-4">
+			<label
+				for="walkDuration"
+				class="block"
+			>
+				Duration
+			</label>
+			<input
+				id="walkDuration"
+				class="border"
+				type="text"
+				name="duration"
+				value={ formData.Duration }
+				required
+			/>
+		</div>
+		<div class="mt-4">
+			<label
+				for="distanceInMiles"
+				class="block"
+			>
+				Distance in miles
+			</label>
+			<input
+				id="distanceInMiles"
+				class="border"
+				type="text"
+				name="distanceInMiles"
+				value={ formData.DistanceInMiles }
+				required
+			/>
+		</div>
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
 
-templ WalksEdit(walkID uuid.UUID, formData *formdata.FormData) {
-	<form method="post" action={ templ.SafeURL("/walks" + walkID.String()) }>
+templ WalksEdit(walkID uuid.UUID, formData *WalkFormFields) {
+	<form method="post" action={ templ.SafeURL("/walks/" + walkID.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@VerticalLabeledForm(formData)
+		<div class="mt-4">
+			<label
+				for="walkDuration"
+				class="block"
+			>
+				Duration
+			</label>
+			<input
+				id="walkDuration"
+				class="border"
+				type="text"
+				name="duration"
+				value={ formData.Duration }
+				required
+			/>
+		</div>
+		<div class="mt-4">
+			<label
+				for="distanceInMiles"
+				class="block"
+			>
+				Distance in miles
+			</label>
+			<input
+				id="distanceInMiles"
+				class="border"
+				type="text"
+				name="distanceInMiles"
+				value={ formData.DistanceInMiles }
+				required
+			/>
+		</div>
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }

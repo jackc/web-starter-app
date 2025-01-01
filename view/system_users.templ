@@ -2,7 +2,6 @@ package view
 
 import (
 	"github.com/gofrs/uuid/v5"
-	"github.com/jackc/web-starter-app/lib/formdata"
 	"strconv"
 )
 
@@ -43,19 +42,88 @@ templ SystemUsersShowPage(user *SystemUsersPageUser) {
 	</form>
 }
 
-templ SystemUsersNewPage(formData *formdata.FormData) {
+type SystemUsersFormFields struct {
+	Username string
+	System   bool
+}
+
+templ SystemUsersNewPage(formData *SystemUsersFormFields) {
 	<form method="post" action="/system/users">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@VerticalLabeledForm(formData)
+		<div class="mt-4">
+			<label
+				for="username"
+				class="block"
+			>
+				Username
+			</label>
+			<input
+				id="username"
+				class="border"
+				type="text"
+				name="username"
+				value={ formData.Username }
+				required
+			/>
+		</div>
+		<div class="mt-4">
+			<input type="hidden" name="system" value="0"/>
+			<input
+				id="system"
+				class="border"
+				type="checkbox"
+				name="system"
+				checked?={ formData.System }
+				value="1"
+			/>
+			<label
+				for="system"
+				class="block"
+			>
+				System
+			</label>
+		</div>
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
 
-templ SystemUsersEditPage(id uuid.UUID, formData *formdata.FormData) {
+templ SystemUsersEditPage(id uuid.UUID, formData *SystemUsersFormFields) {
 	<form method="post" action={ templ.SafeURL("/system/users/" + id.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
 		<input type="hidden" name="_method" value="PATCH"/>
-		@VerticalLabeledForm(formData)
+		<div class="mt-4">
+			<label
+				for="username"
+				class="block"
+			>
+				Username
+			</label>
+			<input
+				id="username"
+				class="border"
+				type="text"
+				name="username"
+				value={ formData.Username }
+				required
+			/>
+		</div>
+		<div class="mt-4">
+			<input type="hidden" name="system" value="0"/>
+			<input
+				id="system"
+				class="border"
+				type="checkbox"
+				name="system"
+				checked?={ formData.System }
+				value="1"
+			/>
+			<label
+				for="system"
+				class="block"
+			>
+				System
+			</label>
+		</div>
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
