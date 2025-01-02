@@ -69,5 +69,5 @@ func TestChangePasswordFailure(t *testing.T) {
 	page.FillIn("New Password", "newpassword")
 	page.ClickOn("Save")
 
-	page.HasContent("body", "invalid")
+	page.HasContent("body", "Invalid password")
 }

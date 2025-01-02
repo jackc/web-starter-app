@@ -334,7 +334,7 @@ func NewHandler(
 		router.Method("GET", "/change_password", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 			formData := view.ChangePasswordFormFields{}
 
-			return view.ApplicationLayout(view.ChangePassword(&formData)).Render(r.Context(), w)
+			return view.ApplicationLayout(view.ChangePassword(&formData, nil)).Render(r.Context(), w)
 		}))
 
 		router.Method("POST", "/change_password", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
@@ -342,12 +342,18 @@ func NewHandler(
 
 			formData := view.ChangePasswordFormFields{}
 			err := structify.Parse(params, &formData)
+			if err != nil {
+				if validationErrors, ok := err.(*errortree.Node); ok {
+					return view.ApplicationLayout(view.ChangePassword(&formData, validationErrors)).Render(r.Context(), w)
+				}
+				return err
+			}
 
 			err = db.ValidateUserPassword(ctx, env.dbpool, loginSession.User.ID, formData.CurrentPassword)
 			if err != nil {
-				// TODO - rerender form
-				http.Error(w, "invalid password", http.StatusUnauthorized)
-				return nil
+				validationErrors := &errortree.Node{}
+				validationErrors.Add([]any{"currentPassword"}, errors.New("Invalid password"))
+				return view.ApplicationLayout(view.ChangePassword(&formData, validationErrors)).Render(r.Context(), w)
 			}
 
 			err = db.SetUserPassword(ctx, env.dbpool, loginSession.User.ID, formData.NewPassword)
