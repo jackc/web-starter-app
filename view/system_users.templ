@@ -2,6 +2,7 @@ package view
 
 import (
 	"github.com/gofrs/uuid/v5"
+	"github.com/jackc/errortree"
 	"strconv"
 )
 
@@ -47,7 +48,7 @@ type SystemUsersFormFields struct {
 	System   bool
 }
 
-templ systemUsersFormFields(formData *SystemUsersFormFields) {
+templ systemUsersFormFields(formData *SystemUsersFormFields, validationErrors *errortree.Node) {
 	<div class="mt-4">
 		<label
 			for="username"
@@ -63,6 +64,13 @@ templ systemUsersFormFields(formData *SystemUsersFormFields) {
 			value={ formData.Username }
 			required
 		/>
+		if validationErrors != nil {
+			<ul>
+				for _, err := range validationErrors.Get("username") {
+					<li class="text-red-500">{ err.Error() }</li>
+				}
+			</ul>
+		}
 	</div>
 	<div class="mt-4">
 		<input type="hidden" name="system" value="0"/>
@@ -83,18 +91,18 @@ templ systemUsersFormFields(formData *SystemUsersFormFields) {
 	</div>
 }
 
-templ SystemUsersNewPage(formData *SystemUsersFormFields) {
+templ SystemUsersNewPage(formData *SystemUsersFormFields, validationErrors *errortree.Node) {
 	<form method="post" action="/system/users">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@systemUsersFormFields(formData)
+		@systemUsersFormFields(formData, validationErrors)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
 
-templ SystemUsersEditPage(id uuid.UUID, formData *SystemUsersFormFields) {
+templ SystemUsersEditPage(id uuid.UUID, formData *SystemUsersFormFields, validationErrors *errortree.Node) {
 	<form method="post" action={ templ.SafeURL("/system/users/" + id.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@systemUsersFormFields(formData)
+		@systemUsersFormFields(formData, validationErrors)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }

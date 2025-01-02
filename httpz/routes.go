@@ -380,17 +380,32 @@ func NewHandler(
 
 		router.Method("GET", "/users/new", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 			formData := view.SystemUsersFormFields{}
-			return view.ApplicationLayout(view.SystemUsersNewPage(&formData)).Render(r.Context(), w)
+			return view.ApplicationLayout(view.SystemUsersNewPage(&formData, nil)).Render(r.Context(), w)
 		}))
 
 		router.Method("POST", "/users", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 			formData := view.SystemUsersFormFields{}
 			err := structify.Parse(params, &formData)
 			if err != nil {
+				if validationErrors, ok := err.(*errortree.Node); ok {
+					return view.ApplicationLayout(view.SystemUsersNewPage(&formData, validationErrors)).Render(r.Context(), w)
+				}
 				return err
 			}
 
 			userID := uuid.Must(uuid.NewV7())
+
+			var nameTaken bool
+			err = env.dbpool.QueryRow(ctx, "select exists(select 1 from users where username = $1)", formData.Username).Scan(&nameTaken)
+			if err != nil {
+				return err
+			}
+			if nameTaken {
+				validationErrors := &errortree.Node{}
+				validationErrors.Add([]any{"username"}, errors.New("Username is already taken"))
+				return view.ApplicationLayout(view.SystemUsersNewPage(&formData, validationErrors)).Render(r.Context(), w)
+			}
+
 			err = pgxutil.InsertRow(ctx, env.dbpool, "users", map[string]any{
 				"id":       userID,
 				"username": formData.Username,
@@ -399,8 +414,6 @@ func NewHandler(
 			if err != nil {
 				return err
 			}
-
-			// TODO - render error
 
 			http.Redirect(w, r, "/system/users", http.StatusSeeOther)
 			return nil
@@ -432,7 +445,7 @@ func NewHandler(
 				return err
 			}
 
-			return view.ApplicationLayout(view.SystemUsersEditPage(userID, &formData)).Render(r.Context(), w)
+			return view.ApplicationLayout(view.SystemUsersEditPage(userID, &formData, nil)).Render(r.Context(), w)
 		}))
 
 		router.Method("POST", "/users/{id}/update", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
@@ -444,7 +457,21 @@ func NewHandler(
 			formData := view.SystemUsersFormFields{}
 			err = structify.Parse(params, &formData)
 			if err != nil {
+				if validationErrors, ok := err.(*errortree.Node); ok {
+					return view.ApplicationLayout(view.SystemUsersEditPage(userID, &formData, validationErrors)).Render(r.Context(), w)
+				}
 				return err
+			}
+
+			var nameTaken bool
+			err = env.dbpool.QueryRow(ctx, "select exists(select 1 from users where username = $1 and id <> $2)", formData.Username, userID).Scan(&nameTaken)
+			if err != nil {
+				return err
+			}
+			if nameTaken {
+				validationErrors := &errortree.Node{}
+				validationErrors.Add([]any{"username"}, errors.New("Username is already taken"))
+				return view.ApplicationLayout(view.SystemUsersEditPage(userID, &formData, validationErrors)).Render(r.Context(), w)
 			}
 
 			err = pgxutil.UpdateRow(ctx, env.dbpool, "users", map[string]any{
