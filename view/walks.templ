@@ -2,6 +2,7 @@ package view
 
 import (
 	"github.com/gofrs/uuid/v5"
+	"github.com/jackc/errortree"
 	"github.com/shopspring/decimal"
 	"time"
 )
@@ -35,7 +36,7 @@ type WalkFormFields struct {
 	DistanceInMiles string
 }
 
-templ walkFormFields(formData *WalkFormFields) {
+templ walkFormFields(formData *WalkFormFields, loginErrors *errortree.Node) {
 	<div class="mt-4">
 		<label
 			for="walkDuration"
@@ -51,6 +52,13 @@ templ walkFormFields(formData *WalkFormFields) {
 			value={ formData.Duration }
 			required
 		/>
+		if loginErrors != nil {
+			<ul>
+				for _, err := range loginErrors.Get("duration") {
+					<li class="text-red-500">{ err.Error() }</li>
+				}
+			</ul>
+		}
 	</div>
 	<div class="mt-4">
 		<label
@@ -67,21 +75,35 @@ templ walkFormFields(formData *WalkFormFields) {
 			value={ formData.DistanceInMiles }
 			required
 		/>
+		if loginErrors != nil {
+			<ul>
+				for _, err := range loginErrors.Get("distanceInMiles") {
+					<li class="text-red-500">{ err.Error() }</li>
+				}
+			</ul>
+		}
 	</div>
 }
 
-templ WalksNew(formData *WalkFormFields) {
+templ WalksNew(formData *WalkFormFields, loginErrors *errortree.Node) {
+	if loginErrors != nil {
+		<ul>
+			for _, err := range loginErrors.Get() {
+				<li class="text-red-500">{ err.Error() }</li>
+			}
+		</ul>
+	}
 	<form method="post" action="/walks">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@walkFormFields(formData)
+		@walkFormFields(formData, loginErrors)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
 
-templ WalksEdit(walkID uuid.UUID, formData *WalkFormFields) {
+templ WalksEdit(walkID uuid.UUID, formData *WalkFormFields, loginErrors *errortree.Node) {
 	<form method="post" action={ templ.SafeURL("/walks/" + walkID.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@walkFormFields(formData)
+		@walkFormFields(formData, loginErrors)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }

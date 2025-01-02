@@ -175,7 +175,7 @@ func NewHandler(
 
 		router.Method("GET", "/walks/new", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 			formData := view.WalkFormFields{}
-			return view.ApplicationLayout(view.WalksNew(&formData)).Render(r.Context(), w)
+			return view.ApplicationLayout(view.WalksNew(&formData, nil)).Render(r.Context(), w)
 		}))
 
 		router.Method("POST", "/walks", func() http.Handler {
@@ -188,7 +188,24 @@ func NewHandler(
 					return err
 				}
 
-				// TODO - validate data
+				validationErrors := &errortree.Node{}
+				duration, err := time.ParseDuration(formData.Duration)
+				if err != nil {
+					validationErrors.Add([]any{"duration"}, errors.New("Invalid duration"))
+				} else if duration <= 0 {
+					validationErrors.Add([]any{"duration"}, errors.New("Duration must be greater than 0"))
+				}
+
+				distanceInMiles, err := decimal.NewFromString(formData.DistanceInMiles)
+				if err != nil {
+					validationErrors.Add([]any{"distanceInMiles"}, errors.New("Invalid distance"))
+				} else if distanceInMiles.LessThanOrEqual(decimal.Zero) {
+					validationErrors.Add([]any{"distanceInMiles"}, errors.New("Distance must be greater than 0"))
+				}
+
+				if validationErrors.AllErrors() != nil {
+					return view.ApplicationLayout(view.WalksNew(&formData, validationErrors)).Render(r.Context(), w)
+				}
 
 				err = pgxutil.InsertRow(ctx, env.dbpool, "walks", map[string]any{
 					"id":                uuid.Must(uuid.NewV7()),
@@ -243,7 +260,7 @@ func NewHandler(
 				Duration:        duration.String(),
 				DistanceInMiles: distanceInMiles.String(),
 			}
-			return view.ApplicationLayout(view.WalksEdit(walkID, &formData)).Render(r.Context(), w)
+			return view.ApplicationLayout(view.WalksEdit(walkID, &formData, nil)).Render(r.Context(), w)
 		}))
 
 		router.Method("POST", "/walks/{id}/update", hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
@@ -257,14 +274,34 @@ func NewHandler(
 			formData := view.WalkFormFields{}
 			err = structify.Parse(params, &formData)
 			if err != nil {
+				if validationErrors, ok := err.(*errortree.Node); ok {
+					return view.ApplicationLayout(view.WalksEdit(walkID, &formData, validationErrors)).Render(r.Context(), w)
+				}
 				return err
 			}
 
-			// TODO - validate data
+			validationErrors := &errortree.Node{}
+			duration, err := time.ParseDuration(formData.Duration)
+			if err != nil {
+				validationErrors.Add([]any{"duration"}, errors.New("Invalid duration"))
+			} else if duration <= 0 {
+				validationErrors.Add([]any{"duration"}, errors.New("Duration must be greater than 0"))
+			}
+
+			distanceInMiles, err := decimal.NewFromString(formData.DistanceInMiles)
+			if err != nil {
+				validationErrors.Add([]any{"distanceInMiles"}, errors.New("Invalid distance"))
+			} else if distanceInMiles.LessThanOrEqual(decimal.Zero) {
+				validationErrors.Add([]any{"distanceInMiles"}, errors.New("Distance must be greater than 0"))
+			}
+
+			if validationErrors.AllErrors() != nil {
+				return view.ApplicationLayout(view.WalksEdit(walkID, &formData, validationErrors)).Render(r.Context(), w)
+			}
 
 			err = pgxutil.UpdateRow(ctx, env.dbpool, "walks", map[string]any{
-				"duration":          formData.Duration,
-				"distance_in_miles": formData.DistanceInMiles,
+				"duration":          duration,
+				"distance_in_miles": distanceInMiles,
 			}, map[string]any{
 				"id":      walkID,
 				"user_id": loginSession.User.ID,
