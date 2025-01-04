@@ -484,8 +484,6 @@ func NewHandler(
 				return err
 			}
 
-			// TODO handle validation errors
-
 			http.Redirect(w, r, "/system/users", http.StatusSeeOther)
 			return nil
 		}))
