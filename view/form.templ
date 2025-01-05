@@ -1,0 +1,47 @@
+package view
+
+type inputParams struct {
+	ID       string
+	Type     string
+	Name     string
+	Value    string
+	Required bool
+
+	Label string
+
+	Errors []string
+}
+
+templ labeledInput(params inputParams) {
+	{{
+	if params.ID == "" {
+		params.ID = params.Name
+	}
+	if params.Type == "" {
+		params.Type = "text"
+	}
+	}}
+	<div class="mt-4">
+		<label
+			for={ params.ID }
+			class="block"
+		>
+			{ params.Label }
+		</label>
+		<input
+			id={ params.ID }
+			class="border"
+			type={ params.Type }
+			name={ params.Name }
+			value={ params.Value }
+			required?={ params.Required }
+		/>
+		if params.Errors != nil {
+			<ul>
+				for _, err := range params.Errors {
+					<li class="text-red-500">{ err }</li>
+				}
+			</ul>
+		}
+	</div>
+}

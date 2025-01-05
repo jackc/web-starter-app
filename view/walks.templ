@@ -2,7 +2,7 @@ package view
 
 import (
 	"github.com/gofrs/uuid/v5"
-	"github.com/jackc/errortree"
+	"github.com/jackc/web-starter-app/lib/formerrors"
 	"github.com/shopspring/decimal"
 	"time"
 )
@@ -36,74 +36,42 @@ type WalkFormFields struct {
 	DistanceInMiles string
 }
 
-templ walkFormFields(formData *WalkFormFields, loginErrors *errortree.Node) {
-	<div class="mt-4">
-		<label
-			for="walkDuration"
-			class="block"
-		>
-			Duration
-		</label>
-		<input
-			id="walkDuration"
-			class="border"
-			type="text"
-			name="duration"
-			value={ formData.Duration }
-			required
-		/>
-		if loginErrors != nil {
-			<ul>
-				for _, err := range loginErrors.Get("duration") {
-					<li class="text-red-500">{ err.Error() }</li>
-				}
-			</ul>
-		}
-	</div>
-	<div class="mt-4">
-		<label
-			for="distanceInMiles"
-			class="block"
-		>
-			Distance in miles
-		</label>
-		<input
-			id="distanceInMiles"
-			class="border"
-			type="text"
-			name="distanceInMiles"
-			value={ formData.DistanceInMiles }
-			required
-		/>
-		if loginErrors != nil {
-			<ul>
-				for _, err := range loginErrors.Get("distanceInMiles") {
-					<li class="text-red-500">{ err.Error() }</li>
-				}
-			</ul>
-		}
-	</div>
+templ walkFormFields(formData *WalkFormFields, formErrors *formerrors.Errors) {
+	@labeledInput(inputParams{
+		Name:     "Duration",
+		Value:    formData.Duration,
+		Required: true,
+		Label:    "Duration",
+		Errors:   formErrors.For("Duration"),
+	})
+	@labeledInput(inputParams{
+		Name:     "DistanceInMiles",
+		Value:    formData.DistanceInMiles,
+		Required: true,
+		Label:    "Distance in miles",
+		Errors:   formErrors.For("DistanceInMiles"),
+	})
 }
 
-templ WalksNew(formData *WalkFormFields, loginErrors *errortree.Node) {
-	if loginErrors != nil {
+templ WalksNew(formData *WalkFormFields, formErrors *formerrors.Errors) {
+	if errors := formErrors.For(""); errors != nil {
 		<ul>
-			for _, err := range loginErrors.Get() {
-				<li class="text-red-500">{ err.Error() }</li>
+			for _, errMsg := range errors {
+				<li class="text-red-500">{ errMsg }</li>
 			}
 		</ul>
 	}
 	<form method="post" action="/walks">
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@walkFormFields(formData, loginErrors)
+		@walkFormFields(formData, formErrors)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }
 
-templ WalksEdit(walkID uuid.UUID, formData *WalkFormFields, loginErrors *errortree.Node) {
+templ WalksEdit(walkID uuid.UUID, formData *WalkFormFields, formErrors *formerrors.Errors) {
 	<form method="post" action={ templ.SafeURL("/walks/" + walkID.String() + "/update") }>
 		<input type="hidden" name="gorilla.csrf.Token" value={ csrfToken(ctx) }/>
-		@walkFormFields(formData, loginErrors)
+		@walkFormFields(formData, formErrors)
 		@button("Save", templ.Attributes{"type": "submit"})
 	</form>
 }

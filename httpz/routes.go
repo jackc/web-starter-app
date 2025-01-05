@@ -19,6 +19,7 @@ import (
 	"github.com/jackc/structify"
 	"github.com/jackc/web-starter-app/db"
 	"github.com/jackc/web-starter-app/lib/bee"
+	"github.com/jackc/web-starter-app/lib/formerrors"
 	"github.com/jackc/web-starter-app/view"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -182,29 +183,28 @@ func NewHandler(
 			return hb.New(func(ctx context.Context, w http.ResponseWriter, r *http.Request, env *environment, params map[string]any) error {
 				loginSession := getLoginSession(ctx)
 
-				formData := view.WalkFormFields{}
-				err := structify.Parse(params, &formData)
-				if err != nil {
-					return err
+				formData := view.WalkFormFields{
+					Duration:        r.FormValue("Duration"),
+					DistanceInMiles: r.FormValue("DistanceInMiles"),
 				}
 
-				validationErrors := &errortree.Node{}
+				formErrors := &formerrors.Errors{}
 				duration, err := time.ParseDuration(formData.Duration)
 				if err != nil {
-					validationErrors.Add([]any{"duration"}, errors.New("Invalid duration"))
+					formErrors.Add("Duration", "invalid")
 				} else if duration <= 0 {
-					validationErrors.Add([]any{"duration"}, errors.New("Duration must be greater than 0"))
+					formErrors.Add("Duration", "must be greater than 0")
 				}
 
 				distanceInMiles, err := decimal.NewFromString(formData.DistanceInMiles)
 				if err != nil {
-					validationErrors.Add([]any{"distanceInMiles"}, errors.New("Invalid distance"))
+					formErrors.Add("DistanceInMiles", "invalid")
 				} else if distanceInMiles.LessThanOrEqual(decimal.Zero) {
-					validationErrors.Add([]any{"distanceInMiles"}, errors.New("Distance must be greater than 0"))
+					formErrors.Add("DistanceInMiles", "must be greater than 0")
 				}
 
-				if validationErrors.AllErrors() != nil {
-					return view.ApplicationLayout(view.WalksNew(&formData, validationErrors)).Render(r.Context(), w)
+				if formErrors.Any() {
+					return view.ApplicationLayout(view.WalksNew(&formData, formErrors)).Render(r.Context(), w)
 				}
 
 				err = pgxutil.InsertRow(ctx, env.dbpool, "walks", map[string]any{
@@ -271,32 +271,28 @@ func NewHandler(
 				return err
 			}
 
-			formData := view.WalkFormFields{}
-			err = structify.Parse(params, &formData)
-			if err != nil {
-				if validationErrors, ok := err.(*errortree.Node); ok {
-					return view.ApplicationLayout(view.WalksEdit(walkID, &formData, validationErrors)).Render(r.Context(), w)
-				}
-				return err
+			formData := view.WalkFormFields{
+				Duration:        r.FormValue("Duration"),
+				DistanceInMiles: r.FormValue("DistanceInMiles"),
 			}
 
-			validationErrors := &errortree.Node{}
+			formErrors := &formerrors.Errors{}
 			duration, err := time.ParseDuration(formData.Duration)
 			if err != nil {
-				validationErrors.Add([]any{"duration"}, errors.New("Invalid duration"))
+				formErrors.Add("Duration", "invalid")
 			} else if duration <= 0 {
-				validationErrors.Add([]any{"duration"}, errors.New("Duration must be greater than 0"))
+				formErrors.Add("Duration", "must be greater than 0")
 			}
 
 			distanceInMiles, err := decimal.NewFromString(formData.DistanceInMiles)
 			if err != nil {
-				validationErrors.Add([]any{"distanceInMiles"}, errors.New("Invalid distance"))
+				formErrors.Add("DistanceInMiles", "invalid")
 			} else if distanceInMiles.LessThanOrEqual(decimal.Zero) {
-				validationErrors.Add([]any{"distanceInMiles"}, errors.New("Distance must be greater than 0"))
+				formErrors.Add("DistanceInMiles", "must be greater than 0")
 			}
 
-			if validationErrors.AllErrors() != nil {
-				return view.ApplicationLayout(view.WalksEdit(walkID, &formData, validationErrors)).Render(r.Context(), w)
+			if formErrors.Any() {
+				return view.ApplicationLayout(view.WalksEdit(walkID, &formData, formErrors)).Render(r.Context(), w)
 			}
 
 			err = pgxutil.UpdateRow(ctx, env.dbpool, "walks", map[string]any{
